@@ -1,0 +1,141 @@
+Predicting Quality of Weight Lifting Exercise
+====================================
+
+Introduction
+--------------
+
+This project is part of the Practical Machine Learning course at Coursera. The main objective is to predict how well an activity was performed by a person using an on-body sensor. 
+
+Six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions (classes).  One class represents performing the exercise correctly, the remaining four classes represent common mistakes.
+
+The approach taken in this work was using Random Forests. The following sections describe the data preparation, the model building and validation.
+
+Data Preparation
+--------------
+
+### Loading Data
+
+After downloading the datasets, we start working with the data:
+
+```{r, eval=FALSE}
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv","pml-training.csv") 
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv","pml-testing.csv")
+```
+
+Reading the files:
+```{r}
+raw.training <- read.csv("pml-training.csv",stringsAsFactors=FALSE,na.strings=c("NA",""))
+raw.testing <- read.csv("pml-testing.csv",stringsAsFactors=FALSE,na.strings=c("NA",""))
+```
+
+### Cleaning Data
+
+Many attributes in datasets have a lot of missing values so we decided to remove all columns that contain mostly NAs in the training set and do the same for the testing set.
+```{r}
+NAs <- apply(raw.training,2,function(x) {sum(is.na(x))}) 
+training <- raw.training[,which(NAs == 0)]
+testing <- raw.testing[,which(NAs == 0)]
+```
+
+Also, we remove the columns with non-numeric variables such as user name, time stamps and window (Columns 1..6). These attributes are not generalizable for other data sets.
+```{r}
+rem.Idx <- as.integer(c(1,2,3,4,5,6,7))
+
+training <- training[,-rem.Idx]
+training$classe <- as.factor(training$classe)
+
+testing <- testing[,-rem.Idx]
+```
+
+Model Building
+--------------
+
+For this section we are going to use the `caret` package in R.
+```{r ,warning=FALSE,message=FALSE}
+library(caret)
+```
+
+First step is to partition the training data for considering cross-validation. The training data set was split up into one portion (70%) for model building and another portion (30%) for cross-validation.
+```{r}
+set.seed(1234)
+inTrain = createDataPartition(training$classe, p = 0.7, list=FALSE)
+trainSet = training[ inTrain,]
+cv.testSet = training[-inTrain,]
+```
+
+I decided to try out Random Forests as the prediction algorithm. The model was train on the `trainSet` and then cross-validated on the `cv.testSet`.
+
+### Random Forests
+
+We build the random forest model with a 5-fold cross validation. We run the `train` function with default tuning parameters and find out that the optimal `mtry` parameter for this case is **27**. 
+```{r,warning=FALSE,message=FALSE}
+library(randomForest)
+```
+
+```{r}
+set.seed(7513)
+
+mControl <- trainControl(method = "cv", number=5)
+modelFit <- train(trainSet$classe~., data = trainSet, method="rf", trControl = mControl)
+modelFit
+```
+
+#### *Cross Validation*
+
+Now we proceed with the predictions for the cross validation.
+
+```{r}
+cv.pred <- predict(modelFit, cv.testSet)
+```
+
+We use a Confusion Matrix in order to evaluate the accuracy of our model. Each column of the matrix represents the instances in a predicted class, while each row represents the instances in an actual (reference) class.
+
+```{r}
+confMatrix <- confusionMatrix(cv.pred, cv.testSet$classe)
+confMatrix$table
+```
+
+The cross-validation accuracy for the random forest model is 99.4%.
+```{r}
+confMatrix$overall["Accuracy"]
+```
+
+Applying the Model
+--------------
+
+Now that the Random Forests model was build and tested, we proceed to apply this model in order to predict the `classe` on the testing set provided.
+```{r}
+testing.pred <- predict(modelFit, testing)
+```
+
+```{r, echo=FALSE}
+cat("Predicted 'classe' values for the 20 cases on the testing set\n")
+testing.pred
+```
+
+Generating submission files
+--------------
+
+The following code was provided by instructor in order to generate submission files for grading.
+```{r}
+answers = as.character(testing.pred)
+
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+
+pml_write_files(answers)
+```
+
+We could predict the 20 test cases provided with 100% accuracy using this model.
+
+References
+--------------
+
+Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.
+
+Read more: http://groupware.les.inf.puc-rio.br/har
