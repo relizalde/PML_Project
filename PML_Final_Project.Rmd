@@ -1,14 +1,14 @@
-Predicting Quality of Weight Lifting Exercise
+Predicting Quality of Weight Lifting Exercises
 ====================================
 
 Introduction
 --------------
 
-This project is part of the Practical Machine Learning course at Coursera. The main objective is to predict how well an activity was performed by a person using an on-body sensor. 
+This project is part of the __Practical Machine Learning__ course given at Coursera by _Johns Hopkins University_. The main objective is to predict how well an activity was performed by a person using an on-body sensor. 
 
 Six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions (classes).  One class represents performing the exercise correctly, the remaining four classes represent common mistakes.
 
-The approach taken in this work was using Random Forests. The following sections describe the data preparation, the model building and validation.
+The approach taken in this work was using _Random Forests_. The following sections describe the data preparation, the model building and validation.
 
 Data Preparation
 --------------
@@ -37,7 +37,7 @@ training <- raw.training[,which(NAs == 0)]
 testing <- raw.testing[,which(NAs == 0)]
 ```
 
-Also, we remove the columns with non-numeric variables such as user name, time stamps and window (Columns 1..6). These attributes are not generalizable for other data sets.
+Also, we remove the columns with non-numeric variables such as `user_name`, time stamps and window (Columns 1..6). These attributes are not generalizable for other data sets.
 ```{r}
 rem.Idx <- as.integer(c(1,2,3,4,5,6,7))
 
@@ -63,7 +63,7 @@ trainSet = training[ inTrain,]
 cv.testSet = training[-inTrain,]
 ```
 
-I decided to try out Random Forests as the prediction algorithm. The model was train on the `trainSet` and then cross-validated on the `cv.testSet`.
+I decided to try out _Random Forests_ as the prediction algorithm. The model was train on the `trainSet` and then cross-validated on the `cv.testSet`.
 
 ### Random Forests
 
@@ -76,7 +76,7 @@ library(randomForest)
 set.seed(7513)
 
 mControl <- trainControl(method = "cv", number=5)
-modelFit <- train(trainSet$classe~., data = trainSet, method="rf", trControl = mControl)
+modelFit <- train(classe ~ ., data = trainSet, method="rf", trControl = mControl)
 modelFit
 ```
 
@@ -88,7 +88,7 @@ Now we proceed with the predictions for the cross validation.
 cv.pred <- predict(modelFit, cv.testSet)
 ```
 
-We use a Confusion Matrix in order to evaluate the accuracy of our model. Each column of the matrix represents the instances in a predicted class, while each row represents the instances in an actual (reference) class.
+We use a _Confusion Matrix_ in order to evaluate the accuracy of our model. Each column of the matrix represents the instances in a predicted class, while each row represents the instances in an actual (reference) class.
 
 ```{r}
 confMatrix <- confusionMatrix(cv.pred, cv.testSet$classe)
@@ -113,24 +113,6 @@ cat("Predicted 'classe' values for the 20 cases on the testing set\n")
 testing.pred
 ```
 
-Generating submission files
---------------
-
-The following code was provided by instructor in order to generate submission files for grading.
-```{r}
-answers = as.character(testing.pred)
-
-pml_write_files = function(x){
-  n = length(x)
-  for(i in 1:n){
-    filename = paste0("problem_id_",i,".txt")
-    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
-  }
-}
-
-pml_write_files(answers)
-```
-
 We could predict the 20 test cases provided with 100% accuracy using this model.
 
 References
@@ -138,4 +120,4 @@ References
 
 Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.
 
-Read more: http://groupware.les.inf.puc-rio.br/har
+Read more: [Groupware@LES: Human Activity Recognition](http://groupware.les.inf.puc-rio.br/har)
