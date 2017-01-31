@@ -95,10 +95,42 @@ confMatrix <- confusionMatrix(cv.pred, cv.testSet$classe)
 confMatrix$table
 ```
 
-The cross-validation accuracy for the random forest model is 99.4%.
+The accuracy for the random forest model is 99.4%.
 ```{r}
 confMatrix$overall["Accuracy"]
 ```
+
+For cross validation, a 10-fold cross validation was performed. The training data was randomly splitted into 10 parts, and each of the 10 parts was the testing set, and the other 9 parts were the training set. After the loop runs 10 times, we will get the average accuracy on how the model performed on the testing sets. Based on the result based, the average accuracy was 0.999 and the average kappa was 0.998 , which are fairly high.
+
+```{r}
+# 10-fold cross validation
+set.seed(123)
+k=10
+parts <- split(training,f = rep_len(1:k, nrow(training) ))
+
+# make a function to combine the list of 10 equal size data
+combinedata <- function(index){
+  data <- parts[[index[1]]]
+  for (i in 2:(length(index))) data <- rbind(data, parts[[index[i]]])
+  data
+}
+
+# set empty matrix to store result
+cross_validation_result <- as.data.frame(matrix(nrow=7, ncol=k))
+
+index <- 1:10
+
+for (i in 1:10){
+  currentdata <- combinedata(index[index!= i])
+  model <- randomForest(classe~., data=currentdata)
+  result <- confusionMatrix(parts[[i]]$classe, predict(model, newdata=parts[[i]]))
+  cross_validation_result[,i] <- result$overall
+}
+```
+
+Expected Out of Sample Error
+--------------
+The out of sample error is just the error rate that we get when we apply the classification model on a new data set. Therefore, it was just the error rate from the 10-fold cross validation samples. We found that the errors were 0.003, 0.003, 0.003, 0.002, 0.002, 0.004, 0.001, 0.003, 0.004, 0.003. Taking an average of those errors, we got an out of sample error rate of 0.003. Therefore, we can expect the out of sample error for other testing sets to be __0.3%__.
 
 Applying the Model
 --------------
